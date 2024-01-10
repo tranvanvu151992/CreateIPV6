@@ -79,10 +79,15 @@ upload_2file() {
   sed -n '1,1000p' proxy.txt
 }
 
+random_port() {
+    echo $((RANDOM % (65535 - 1024) + 1024))
+}
+
 gen_data() {
-  seq $FIRST_PORT $LAST_PORT | while read port; do
-    echo "usr$(random)/pass$(random)/$IP4/$port/$(gen64 $IP6)"
-  done
+    seq $FIRST_PORT $LAST_PORT | while read _; do
+        port=$(random_port)
+        echo "$IP4/$port"
+    done
 }
 
 gen_iptables() {
