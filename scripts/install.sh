@@ -38,16 +38,16 @@ setgid 65535
 setuid 65535
 flush
 auth none
+allow *
 
-$(awk -F "/" '{print "allow " $1 "\n" \
-"proxy -6 -n -a -p" $3 " -i" $2 " -e"$4"\n" \
+$(awk -F "/" '{print "proxy -6 -n -a -p" $3 " -i" $2 " -e"$4"\n" \
 "flush\n"}' ${WORKDATA})
 EOF
 }
 
 gen_proxy_file_for_user() {
   cat >proxy.txt <<EOF
-$(awk -F "/" '{print $2 ":" $3 ":" $1 }' ${WORKDATA})
+$(awk -F "/" '{print $2 ":" $3 }' ${WORKDATA})
 EOF
 }
 
