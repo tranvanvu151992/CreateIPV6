@@ -15,7 +15,7 @@ gen64() {
 }
 
 install_3proxy() {
-  echo "installing 3proxy"
+  echo "Installing 3proxy..."
   URL="https://github.com/z3APA3A/3proxy/archive/3proxy-0.8.6.tar.gz"
   wget -qO- $URL | bsdtar -xvf-
   cd 3proxy-3proxy-0.8.6
@@ -40,14 +40,14 @@ flush
 auth none
 allow *
 
-$(awk -F "/" '{print "proxy -6 -n -a -p" $3 " -i" $2 " -e"$4"\n" \
+$(awk -F "/" '{print "proxy -6 -n -a -p" $2 " -i" $1 " -e"$3"\n" \
 "flush\n"}' ${WORKDATA})
 EOF
 }
 
 gen_proxy_file_for_user() {
   cat >proxy.txt <<EOF
-$(awk -F "/" '{print $2 ":" $3 }' ${WORKDATA})
+$(awk -F "/" '{print $1 ":" $2 }' ${WORKDATA})
 EOF
 }
 
@@ -83,47 +83,47 @@ gen_data() {
 
 gen_iptables() {
   cat <<EOF
-$(awk -F "/" '{print "iptables -I INPUT -p tcp --dport " $3 "  -m state --state NEW -j ACCEPT"}' ${WORKDATA})
+$(awk -F "/" '{print "iptables -I INPUT -p tcp --dport " $1 "  -m state --state NEW -j ACCEPT"}' ${WORKDATA})
 EOF
 }
 
 gen_ifconfig() {
   cat <<EOF
-$(awk -F "/" '{print "ifconfig eth0 inet6 add " $4 "/64"}' ${WORKDATA})
+$(awk -F "/" '{print "ifconfig eth0 inet6 add " $3 "/64"}' ${WORKDATA})
 EOF
 }
 
-echo "installing apps"
+echo "Installing necessary apps..."
 yum -y install gcc net-tools bsdtar zip >/dev/null
 
 install_3proxy
 
-echo "working folder = /home/proxy-installer"
+echo "Working folder: /home/proxy-installer"
 WORKDIR="/home/proxy-installer"
 WORKDATA="${WORKDIR}/data.txt"
-mkdir $WORKDIR && cd $_
+mkdir $WORKDIR && cd $WORKDIR
 
 IP4=$(curl -4 -s icanhazip.com)
 IP6=$(curl -6 -s icanhazip.com | cut -f1-4 -d':')
 
-echo "Internal ip = ${IP4}. External sub for ip6 = ${IP6}"
+echo "Internal IP: ${IP4}. External subnet for IP6: ${IP6}"
 
-echo "How many proxy do you want to create? Example 500"
+echo "How many proxies do you want to create? Example: 500"
 read COUNT
 
 FIRST_PORT=10000
 LAST_PORT=$(($FIRST_PORT + $COUNT))
 
-gen_data >$WORKDIR/data.txt
+gen_data >$WORKDATA
 gen_iptables >$WORKDIR/boot_iptables.sh
 gen_ifconfig >$WORKDIR/boot_ifconfig.sh
-chmod +x boot_*.sh /etc/rc.local
+chmod +x $WORKDIR/boot_*.sh /etc/rc.local
 
 gen_3proxy >/usr/local/etc/3proxy/3proxy.cfg
 
 cat >>/etc/rc.local <<EOF
-bash ${WORKDIR}/boot_iptables.sh
-bash ${WORKDIR}/boot_ifconfig.sh
+bash $WORKDIR/boot_iptables.sh
+bash $WORKDIR/boot_ifconfig.sh
 ulimit -n 10048
 service 3proxy start
 EOF
